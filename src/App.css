@@ -1,0 +1,74 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* Forzar color de texto y fondo en selects y opciones */
+form select, .form-select {
+  color: #222 !important;
+  background-color: #fff !important;
+}
+form select option, .form-select option {
+  color: #222 !important;
+  background-color: #fff !important;
+}
+
+/* Si usas modo oscuro, puedes ajustar así: */
+body.dark form select, body.dark .form-select {
+  color: #fff !important;
+  background-color: #222 !important;
+}
+body.dark form select option, body.dark .form-select option {
+  color: #fff !important;
+  background-color: #222 !important;
+}
+
+.tab-hover-dark:hover, .tab-hover-dark:focus {
+  background: #fff !important;
+  color: #181818 !important;
+  border-bottom: 3px solid #181818 !important;
+}
+
+.admin-tabs .nav-link.bg-dark {
+  background: #fff !important;
+  color: #181818 !important;
+  border-bottom: 3px solid #181818 !important;
+}
