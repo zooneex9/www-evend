@@ -27,10 +27,11 @@ export default function EventPublicPage() {
       try {
         const res = await api.get(`/events/${eventId}`);
         setEvent(res.data);
+        setLoading(false);
       } catch (e) {
-        setError('No se pudo cargar el evento');
+        console.error('Error fetching event:', e);
+        setLoading(false);
       }
-      setLoading(false);
     };
     const fetchTickets = async () => {
       try {
@@ -46,7 +47,7 @@ export default function EventPublicPage() {
 
   useEffect(() => {
     if (event) {
-      console.log('main_image:', event.main_image);
+      // Event loaded
     }
   }, [event]);
 
@@ -146,7 +147,8 @@ export default function EventPublicPage() {
   if (!event) return null;
 
   return (
-    <Container className="py-4">
+    <div className="event-public-page">
+      <Container className="py-4">
       {/* Logo grande y centrado y cabecera con iconos */}
       <Row className="justify-content-center align-items-center mb-3">
         <Col xs="auto">
@@ -323,5 +325,6 @@ export default function EventPublicPage() {
         </div>
       )}
     </Container>
+    </div>
   );
 } 

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, LogIn } from 'lucide-react';
 
 export default function LoginPage() {
-  const { login, user } = useAuth();
+  const { login, user, error: authError } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,15 +28,25 @@ export default function LoginPage() {
     }
   }, [user, navigate]);
 
+  // Mostrar error del contexto de autenticación
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      await login(email, password);
+      const success = await login(email, password);
+      if (!success) {
+        setError('Credenciales incorrectas. Por favor, verifica tu email y contraseña.');
+      }
       // La redirección se maneja en useEffect
     } catch (err) {
-      setError('Credenciales incorrectas. Por favor, verifica tu email y contraseña.');
+      setError('Error al conectar con el servidor. Por favor, intenta de nuevo.');
     }
     setLoading(false);
   };

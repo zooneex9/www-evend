@@ -31,15 +31,12 @@ export default function EventsPage() {
   const [eventToDelete, setEventToDelete] = useState(null);
 
   const fetchEvents = async () => {
-    setLoading(true);
     try {
       const res = await api.get('/events');
       setEvents(res.data);
-    } catch (err) {
-      toast.error('Error al cargar eventos');
-      console.error(err);
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      console.error('Error fetching events:', e);
+      setEvents([]);
     }
   };
 
@@ -47,8 +44,9 @@ export default function EventsPage() {
     try {
       const res = await api.get('/organizers');
       setOrganizers(res.data);
-    } catch (err) {
-      console.error('Error al cargar organizadores:', err);
+    } catch (e) {
+      console.error('Error fetching organizers:', e);
+      setOrganizers([]);
     }
   };
 
@@ -118,12 +116,35 @@ export default function EventsPage() {
       label: 'Organizador',
       sortable: true,
       filterable: true,
-      render: (value, event) => (
-        <div className="d-flex align-items-center">
-          <Users size={16} className="me-2 text-muted" />
-          {event.organizer?.name || 'Sin organizador'}
-        </div>
-      )
+             render: (value, event) => {
+         // Intentar obtener el nombre del organizador de diferentes formas
+         let organizerName = 'Sin organizador';
+         
+         if (event.organizer?.name) {
+           organizerName = event.organizer.name;
+         } else if (event.organizer?.user?.name) {
+           organizerName = event.organizer.user.name;
+         } else if (event.organizer_name) {
+           organizerName = event.organizer_name;
+         } else if (event.organizer?.company_name) {
+           organizerName = event.organizer.company_name;
+         } else if (event.organizer_id) {
+           // Buscar en la lista de organizadores cargados
+           const organizer = organizers.find(org => org.id === event.organizer_id);
+           if (organizer) {
+             organizerName = organizer.user?.name || organizer.company_name || organizer.name || `Organizador #${organizer.id}`;
+           } else {
+             organizerName = `Organizador #${event.organizer_id}`;
+           }
+         }
+         
+         return (
+           <div className="d-flex align-items-center">
+             <Users size={16} className="me-2 text-muted" />
+             {organizerName}
+           </div>
+         );
+       }
     },
     {
       key: 'location',
@@ -232,24 +253,47 @@ export default function EventsPage() {
   const renderEventForm = () => (
     <ModernForm
       fields={eventFormFields}
-      initialData={editingEvent || {}}
-      title=""
-      submitText={editingEvent ? 'Actualizar Evento' : 'Crear Evento'}
+      initialData={editingEvent ? {
+        title: editingEvent.title,
+        description: editingEvent.description,
+        location: editingEvent.location,
+        start_date: editingEvent.start_date ? new Date(editingEvent.start_date).toISOString().slice(0, 16) : '',
+        end_date: editingEvent.end_date ? new Date(editingEvent.end_date).toISOString().slice(0, 16) : '',
+        is_published: editingEvent.is_published || false
+      } : {}}
+      submitText={editingEvent ? "Actualizar Evento" : "Crear Evento"}
       cancelText="Cancelar"
       onSubmit={async (formData) => {
         setLoading(true);
         try {
+          const data = new FormData();
+          data.append('title', formData.title);
+          data.append('description', formData.description);
+          data.append('location', formData.location);
+          data.append('start_date', formData.start_date);
+          data.append('end_date', formData.end_date);
+          data.append('is_published', formData.is_published || false);
+          
+          if (formData.main_image instanceof File) {
+            data.append('main_image', formData.main_image);
+          }
+          
           if (editingEvent) {
-            await api.put(`/events/${editingEvent.id}`, formData);
+            await api.put(`/events/${editingEvent.id}`, data, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
             toast.success('Evento actualizado exitosamente');
           } else {
-            await api.post('/events', formData);
+            await api.post('/events', data, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+            });
             toast.success('Evento creado exitosamente');
           }
           fetchEvents();
           setShowEventForm(false);
           setEditingEvent(null);
         } catch (err) {
+          console.error('Error al guardar evento:', err);
           toast.error('Error al guardar evento');
         } finally {
           setLoading(false);
@@ -260,7 +304,7 @@ export default function EventsPage() {
         setEditingEvent(null);
       }}
       loading={loading}
-      layout="grid"
+      layout="vertical"
     />
   );
 
@@ -275,7 +319,7 @@ export default function EventsPage() {
             setEditingEvent(null);
           }}
           title={editingEvent ? 'Editar Evento' : 'Crear Nuevo Evento'}
-          size="lg"
+          size="xl"
         >
           {renderEventForm()}
         </ModernModal>

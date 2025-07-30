@@ -17,13 +17,17 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (user) localStorage.setItem('user', JSON.stringify(user));
-    else localStorage.removeItem('user');
-    if (token) localStorage.setItem('token', token);
-    else localStorage.removeItem('token');
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+    
     if (token) {
+      localStorage.setItem('token', token);
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } else {
+      localStorage.removeItem('token');
       delete api.defaults.headers.common['Authorization'];
     }
   }, [user, token]);
@@ -33,12 +37,26 @@ export function AuthProvider({ children }) {
     setError(null);
     try {
       const res = await api.post('/login', { email, password });
-      setUser(res.data.user);
-      setToken(res.data.token);
-      setError(null);
-      return true;
-    } catch (err) {
-      setError(err.response?.data?.message || 'Error de autenticación');
+      
+      // Verificar si la respuesta tiene éxito
+      if (res.data && res.data.user && res.data.token) {
+        const userData = res.data.user;
+        const tokenData = res.data.token;
+        
+        setUser(userData);
+        setToken(tokenData);
+        setError(null);
+        return true;
+      } else {
+        setError('Credenciales incorrectas');
+        setUser(null);
+        setToken(null);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error en login:', error);
+      const errorMessage = error.response?.data?.message || 'Error de autenticación';
+      setError(errorMessage);
       setUser(null);
       setToken(null);
       return false;

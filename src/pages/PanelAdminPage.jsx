@@ -50,7 +50,6 @@ export default function PanelAdminPage() {
 
   // Nueva función para renderizar la página según la ruta del sidebar
   const renderPage = () => {
-    console.log('Renderizando tab:', activeTab);
     switch (activeTab) {
       case 'dashboard':
         return <AdminDashboard onQuickActionClick={handleQuickActionClick} stats={adminStats} />;

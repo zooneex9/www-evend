@@ -2,19 +2,34 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: 'http://127.0.0.1:8000/api',
-  // Puedes agregar headers aquí si usas autenticación
 });
 
-// Interceptor para manejar FormData
+// Interceptor para agregar el token de autenticación
 api.interceptors.request.use(
   (config) => {
-    // Si los datos son FormData, no establecer Content-Type
-    if (config.data instanceof FormData) {
-      config.headers['Content-Type'] = 'multipart/form-data';
+    // Obtener el token del localStorage
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor de respuesta para manejar errores
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Si es un error 401 (no autorizado), limpiar el token
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
     return Promise.reject(error);
   }
 );

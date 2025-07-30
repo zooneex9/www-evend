@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Button, Card, Row, Col, Alert } from 'react-bootstrap';
 import { motion } from 'framer-motion';
 import { Save, X, Plus, Trash2 } from 'lucide-react';
@@ -18,6 +18,12 @@ const ModernForm = ({
   const [formData, setFormData] = useState(initialData);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+
+  useEffect(() => {
+    if (fields && fields.length > 0) {
+      setFormData(initialData || {});
+    }
+  }, [fields, initialData]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({
@@ -147,14 +153,17 @@ const ModernForm = ({
 
         case 'checkbox':
           return (
-            <Form.Check
-              type="checkbox"
-              checked={formData[name] || false}
-              onChange={(e) => handleChange(name, e.target.checked)}
-              onBlur={() => handleBlur(name)}
-              disabled={loading || disabled}
-              {...fieldProps}
-            />
+            <div className="checkbox-container">
+              <Form.Check
+                type="checkbox"
+                checked={formData[name] || false}
+                onChange={(e) => handleChange(name, e.target.checked)}
+                onBlur={() => handleBlur(name)}
+                disabled={loading || disabled}
+                className="custom-checkbox"
+                {...fieldProps}
+              />
+            </div>
           );
 
         case 'radio':
@@ -239,9 +248,6 @@ const ModernForm = ({
       </motion.div>
     ));
   };
-
-  // Depuración: mostrar los campos recibidos
-  console.log('ModernForm fields:', fields);
 
   return (
     <motion.div

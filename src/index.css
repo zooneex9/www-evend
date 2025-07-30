@@ -31,6 +31,26 @@ body {
   background-color: var(--primary-color) !important;
 }
 
+/* Estilos específicos para la página pública del evento */
+.event-public-page {
+  background: #000 !important;
+  color: #ffffff !important;
+  min-height: 100vh;
+}
+
+.event-public-page body {
+  background: #000 !important;
+  color: #ffffff !important;
+}
+
+.event-public-page .container,
+.event-public-page .container-fluid,
+.event-public-page .row,
+.event-public-page .col,
+.event-public-page [class*="col-"] {
+  background: transparent !important;
+}
+
 .bg-gradient-primary {
   background: linear-gradient(135deg, var(--primary-color) 0%, #ff4757 100%) !important;
 }
@@ -62,6 +82,32 @@ body {
   border-color: var(--primary-color) !important;
   color: var(--text-primary) !important;
   box-shadow: 0 0 0 0.2rem rgba(229, 9, 20, 0.25) !important;
+}
+
+/* Placeholder styles for dark inputs */
+.form-control::placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8 !important;
+}
+
+.form-control::-webkit-input-placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8 !important;
+}
+
+.form-control::-moz-placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8 !important;
+}
+
+.form-control:-ms-input-placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8 !important;
+}
+
+.form-control:-moz-placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8 !important;
 }
 
 .navbar {
@@ -248,6 +294,82 @@ button.nav-link.active {
   background-color: var(--secondary-color) !important;
   border-color: var(--primary-color) !important;
   color: var(--text-primary) !important;
+}
+
+/* Placeholder styles for floating form controls */
+.form-floating > .form-control::placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8 !important;
+}
+
+.form-floating > .form-control::-webkit-input-placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8 !important;
+}
+
+.form-floating > .form-control::-moz-placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8 !important;
+}
+
+.form-floating > .form-control:-ms-input-placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8 !important;
+}
+
+.form-floating > .form-control:-moz-placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.8 !important;
+}
+
+/* Custom checkbox styles - minimalista */
+.checkbox-container {
+  padding: 8px 0;
+  margin: 8px 0;
+  transition: all 0.2s ease;
+}
+
+.checkbox-container:hover {
+  background-color: rgba(229, 9, 20, 0.05);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 8px -12px;
+}
+
+.custom-checkbox .form-check-input {
+  width: 18px !important;
+  height: 18px !important;
+  margin-top: 2px !important;
+  border: 1.5px solid var(--border-color) !important;
+  background-color: transparent !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 3px !important;
+}
+
+.custom-checkbox .form-check-input:checked {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  box-shadow: none !important;
+}
+
+.custom-checkbox .form-check-input:focus {
+  box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.2) !important;
+  border-color: var(--primary-color) !important;
+}
+
+.custom-checkbox .form-check-label {
+  font-weight: 500 !important;
+  color: var(--text-primary) !important;
+  font-size: 14px !important;
+  margin-left: 10px !important;
+  cursor: pointer;
+  user-select: none;
+  line-height: 1.4;
+}
+
+.custom-checkbox .form-check-label:hover {
+  color: var(--primary-color) !important;
 }
 
 .form-floating > label {

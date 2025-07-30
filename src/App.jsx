@@ -7,6 +7,7 @@ import EventPublicPage from './pages/EventPublicPage';
 import EventStatsPage from './pages/EventStatsPage';
 import ClientPanelPage from './pages/ClientPanelPage';
 import RegisterPage from './pages/RegisterPage';
+import SuccessPage from './pages/SuccessPage';
 import { useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import LogoutPage from './pages/LogoutPage';
@@ -72,6 +73,7 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/event/:organizerSubdomain/:eventId" element={<EventPublicPage />} />
           <Route path="/event/:organizerSubdomain/:eventId/stats" element={<EventStatsPage />} />
+          <Route path="/success" element={<SuccessPage />} />
           
           {/* Protected Admin Routes with Layout */}
           <Route path="/" element={

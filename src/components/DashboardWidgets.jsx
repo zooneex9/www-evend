@@ -98,7 +98,7 @@ const RecentActivityCard = ({ activities }) => (
   </motion.div>
 );
 
-export default function DashboardWidgets({ userRole, stats = {}, onQuickActionClick }) {
+export default function DashboardWidgets({ userRole, stats = {}, onQuickActionClick, showQuickActions = true }) {
   const [recentActivity, setRecentActivity] = useState(null);
   const { user } = useAuth();
 
@@ -394,13 +394,89 @@ export default function DashboardWidgets({ userRole, stats = {}, onQuickActionCl
   const quickActions = getQuickActions();
   const activities = recentActivity ? getRecentActivities(recentActivity) : getRecentActivities();
 
-  // Al inicio del componente DashboardWidgets
-  console.log("DashboardWidgets props:", { userRole, stats });
-
   return (
-    <div style={{ background: 'yellow', color: 'black', padding: 40 }}>
-      <h1>PRUEBA DE RENDER</h1>
-      <pre>{JSON.stringify({ userRole, stats }, null, 2)}</pre>
+    <div className="container-fluid">
+      {/* Stats Cards */}
+      <Row className="mb-4">
+        {statCards.map((stat, index) => (
+          <Col key={index} xs={12} sm={6} lg={3} className="mb-3">
+            <StatCard {...stat} />
+          </Col>
+        ))}
+      </Row>
+
+      {/* Quick Actions - Solo mostrar si showQuickActions es true */}
+      {showQuickActions && (
+        <>
+          <Row className="mb-4">
+            <Col>
+              <h5 className="fw-semibold mb-3 text-dark">Acciones Rápidas</h5>
+            </Col>
+          </Row>
+          <Row className="mb-4">
+            {quickActions.map((action, index) => (
+              <Col key={index} xs={12} sm={6} lg={4} className="mb-3">
+                <QuickActionCard 
+                  {...action} 
+                  onClick={() => onQuickActionClick && onQuickActionClick(action.title)}
+                />
+              </Col>
+            ))}
+          </Row>
+        </>
+      )}
+
+      {/* Recent Activity */}
+      <Row>
+        <Col lg={8}>
+          <RecentActivityCard activities={activities} />
+        </Col>
+        <Col lg={4}>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="border-0 shadow-sm bg-white">
+              <Card.Header className="bg-transparent border-0">
+                <h6 className="fw-semibold mb-0 text-dark">Resumen</h6>
+              </Card.Header>
+              <Card.Body>
+                <div className="d-flex align-items-center mb-3">
+                  <div className="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                    <Users size={16} className="text-primary" />
+                  </div>
+                  <div>
+                    <div className="fw-semibold small text-dark">
+                      {userRole === 'superadmin' ? 'Usuarios Activos' : 
+                       userRole === 'organizer' ? 'Eventos Activos' : 'Tickets Activos'}
+                    </div>
+                    <div className="text-secondary small">
+                      {userRole === 'superadmin' ? 'Últimos 30 días' : 
+                       userRole === 'organizer' ? 'Este mes' : 'Este año'}
+                    </div>
+                  </div>
+                </div>
+                <div className="d-flex align-items-center">
+                  <div className="bg-success bg-opacity-10 p-2 rounded-circle me-3">
+                    <TrendingUp size={16} className="text-success" />
+                  </div>
+                  <div>
+                    <div className="fw-semibold small text-dark">
+                      {userRole === 'superadmin' ? 'Crecimiento' : 
+                       userRole === 'organizer' ? 'Ventas' : 'Actividad'}
+                    </div>
+                    <div className="text-secondary small">
+                      {userRole === 'superadmin' ? '+15% este mes' : 
+                       userRole === 'organizer' ? '+25% vs mes anterior' : '+10% este año'}
+                    </div>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </motion.div>
+        </Col>
+      </Row>
     </div>
   );
 } 

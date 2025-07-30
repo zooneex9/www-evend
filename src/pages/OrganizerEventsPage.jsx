@@ -14,6 +14,7 @@ export default function OrganizerEventsPage() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
 
   useEffect(() => {
     if (!user || (user.role !== 'organizer' && user.role !== 'superadmin')) {
@@ -26,12 +27,25 @@ export default function OrganizerEventsPage() {
       fetchCredits();
       fetchEvents();
     }
-    // eslint-disable-next-line
   }, [user]);
 
   const fetchCredits = async () => {
     try {
-      const res = await api.get(`/credits?organizer_id=${user.id}`);
+      // Determinar el organizer_id correcto
+      let organizerId = user.id;
+      if (user.role === 'organizer') {
+        try {
+          const organizersRes = await api.get('/organizers');
+          const userOrganizer = organizersRes.data.find(org => org.user_id === user.id);
+          if (userOrganizer) {
+            organizerId = userOrganizer.id;
+          }
+        } catch (e) {
+          console.error('Could not fetch organizers for credits:', e);
+        }
+      }
+      
+      const res = await api.get(`/credits?organizer_id=${organizerId}`);
       const total = res.data.reduce((acc, c) => acc + (c.amount - (c.used || 0)), 0);
       setCredits(total);
     } catch (e) {
@@ -41,10 +55,30 @@ export default function OrganizerEventsPage() {
 
   const fetchEvents = async () => {
     try {
-      const res = await api.get(`/events?organizer_id=${user.id}`);
+      setLoading(true);
+      
+      // Determinar el organizer_id correcto
+      let organizerId = user.id;
+      if (user.role === 'organizer') {
+        // Para organizadores, necesitamos encontrar su organizer_id
+        try {
+          const organizersRes = await api.get('/organizers');
+          const userOrganizer = organizersRes.data.find(org => org.user_id === user.id);
+          if (userOrganizer) {
+            organizerId = userOrganizer.id;
+          }
+        } catch (e) {
+          console.error('Could not fetch organizers for credits:', e);
+        }
+      }
+      
+      const res = await api.get(`/events?organizer_id=${organizerId}`);
       setEvents(res.data);
     } catch (e) {
+      console.error('Error fetching events:', e);
       setEvents([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -116,50 +150,91 @@ export default function OrganizerEventsPage() {
       required: true
     },
     {
-      name: 'image',
+      name: 'main_image',
       label: 'Imagen del Evento',
       type: 'file',
       required: false,
       helpText: 'Opcional. Sube una imagen para el evento (JPG, PNG, etc.)'
     },
     {
-      name: 'prueba',
-      label: 'Campo de Prueba',
-      type: 'text',
+      name: 'is_published',
+      label: 'Publicar Evento',
+      type: 'checkbox',
       required: false,
-      placeholder: 'Esto es una prueba'
+      helpText: 'Marque esta casilla si desea que el evento sea visible públicamente'
     }
   ];
 
   const handleCreateEvent = async (formData) => {
-    setLoading(true);
     try {
+      setLoading(true);
+      
       const data = new FormData();
-      data.append('title', formData.title);
-      data.append('description', formData.description);
-      data.append('location', formData.location);
-      data.append('start_date', formData.start_date);
-      data.append('end_date', formData.end_date);
-      if (formData.image) {
-        data.append('image', formData.image);
-      }
-      data.append('organizer_id', user.organizer_id || user.id);
-      await api.post('/events', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      Object.keys(formData).forEach(key => {
+        if (formData[key] !== null && formData[key] !== undefined) {
+          data.append(key, formData[key]);
+        }
       });
-      toast.success('Evento creado exitosamente');
+      
+      if (formData.main_image && formData.main_image instanceof File) {
+        data.append('main_image', formData.main_image);
+      }
+      
+      // Determinar el organizer_id correcto para crear eventos
+      let organizerId = user.organizer_id || user.id;
+      if (user.role === 'organizer') {
+        try {
+          const organizersRes = await api.get('/organizers');
+          const userOrganizer = organizersRes.data.find(org => org.user_id === user.id);
+          if (userOrganizer) {
+            organizerId = userOrganizer.id;
+          }
+        } catch (e) {
+          console.error('Could not fetch organizers for event creation:', e);
+        }
+      }
+      
+      data.append('organizer_id', organizerId);
+      
+      if (editingEvent) {
+        // Actualizar evento existente
+        await api.put(`/events/${editingEvent.id}`, data, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success('Evento actualizado exitosamente');
+      } else {
+        // Crear nuevo evento
+        await api.post('/events', data, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        toast.success('Evento creado exitosamente');
+      }
+      
       fetchEvents();
       setShowEventForm(false);
+      setEditingEvent(null);
     } catch (err) {
-      toast.error('Error al crear evento');
+      console.error('Error saving event:', err);
+      toast.error(editingEvent ? 'Error al actualizar evento' : 'Error al crear evento');
     } finally {
       setLoading(false);
     }
   };
 
   const handleEditEvent = (event) => {
-    // Aquí puedes abrir un modal de edición o navegar a una página de edición
-    toast('Funcionalidad de editar evento (por implementar)', { icon: '✏️' });
+    // Cargar los datos del evento en el formulario
+    const eventData = {
+      title: event.title,
+      description: event.description,
+      location: event.location,
+      start_date: event.start_date ? new Date(event.start_date).toISOString().slice(0, 16) : '',
+      end_date: event.end_date ? new Date(event.end_date).toISOString().slice(0, 16) : '',
+      is_published: event.is_published || false
+    };
+    
+    // Establecer el evento que se está editando
+    setEditingEvent(event);
+    setShowEventForm(true);
   };
 
   const handleDeleteEvent = async (event) => {
@@ -191,7 +266,10 @@ export default function OrganizerEventsPage() {
       <button
         type="button"
         className="d-flex align-items-center btn btn-primary mb-3"
-        onClick={() => setShowEventForm(true)}
+        onClick={() => {
+          setEditingEvent(null);
+          setShowEventForm(true);
+        }}
       >
         <Plus className="me-2" />
         Crear Evento
@@ -211,26 +289,39 @@ export default function OrganizerEventsPage() {
           itemsPerPage={5}
           onEdit={handleEditEvent}
           onDelete={handleDeleteEvent}
-          onView={handleViewEvent}        // ← Agregar esta línea
-          onStats={handleViewStats}       // ← Agregar esta línea
+          onView={handleViewEvent}
+          onStats={handleViewStats}
         />
       )}
-      {/* Modal para crear evento */}
+      {/* Modal para crear/editar evento */}
       {showEventForm && (
         <ModernModal
           show={showEventForm}
-          onHide={() => setShowEventForm(false)}
-          title="Crear Nuevo Evento"
-          size="lg"
+          onHide={() => {
+            setShowEventForm(false);
+            setEditingEvent(null);
+          }}
+          title={editingEvent ? "Editar Evento" : "Crear Nuevo Evento"}
+          size="xl"
           showCloseButton={false}
         >
           <ModernForm
             fields={eventFormFields}
-            initialData={{}}
-            submitText="Crear Evento"
+            initialData={editingEvent ? {
+              title: editingEvent.title,
+              description: editingEvent.description,
+              location: editingEvent.location,
+              start_date: editingEvent.start_date ? new Date(editingEvent.start_date).toISOString().slice(0, 16) : '',
+              end_date: editingEvent.end_date ? new Date(editingEvent.end_date).toISOString().slice(0, 16) : '',
+              is_published: editingEvent.is_published || false
+            } : {}}
+            submitText={editingEvent ? "Actualizar Evento" : "Crear Evento"}
             cancelText="Cancelar"
             onSubmit={handleCreateEvent}
-            onCancel={() => setShowEventForm(false)}
+            onCancel={() => {
+              setShowEventForm(false);
+              setEditingEvent(null);
+            }}
             loading={loading}
             layout="vertical"
           />

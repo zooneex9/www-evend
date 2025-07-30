@@ -146,7 +146,7 @@ const DataTable = ({
         {onEdit && (item.role !== undefined ? item.role !== 'suspended' : item.is_active !== false) && (
           <Dropdown.Item onClick={() => onEdit(item)} className="text-warning">
             <Edit size={16} className="me-2" />
-            Suspender
+            Editar
           </Dropdown.Item>
         )}
         {onDelete && (

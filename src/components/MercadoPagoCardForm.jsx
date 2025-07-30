@@ -13,232 +13,154 @@ export default function MercadoPagoCardForm({ amount, onPaymentResult }) {
     let mounted = true;
     (async () => {
       try {
-        console.log('Iniciando carga del SDK de Mercado Pago...');
-      await loadMercadoPago();
+        await loadMercadoPago();
         
-      if (!mounted) return;
+        if (!mounted) return;
         
-        console.log('SDK cargado, verificando window.MercadoPago...');
         if (!window.MercadoPago) {
           throw new Error('SDK de Mercado Pago no se cargó correctamente');
         }
         
-      const mp = new window.MercadoPago(PUBLIC_KEY, { locale: "es-MX" });
-        console.log('Instancia de MercadoPago creada:', mp);
+        const mp = new window.MercadoPago(PUBLIC_KEY, { locale: "es-MX" });
 
-      // Verificar que los contenedores existan antes de montar el formulario
-      const cardNumberContainer = document.getElementById('form-checkout__cardNumber');
-      const expirationContainer = document.getElementById('form-checkout__expirationDate');
-      const securityCodeContainer = document.getElementById('form-checkout__securityCode');
-      
-      if (!cardNumberContainer || !expirationContainer || !securityCodeContainer) {
+        // Verificar que los contenedores existan antes de montar el formulario
+        const cardNumberContainer = document.getElementById('form-checkout__cardNumber');
+        const expirationContainer = document.getElementById('form-checkout__expirationDate');
+        const securityCodeContainer = document.getElementById('form-checkout__securityCode');
+        
+        if (!cardNumberContainer || !expirationContainer || !securityCodeContainer) {
           console.error('Contenedores no encontrados:', {
             cardNumber: !!cardNumberContainer,
             expiration: !!expirationContainer,
             securityCode: !!securityCodeContainer
           });
-        if (onPaymentResult) {
-          onPaymentResult({ 
-            error: true, 
+          if (onPaymentResult) {
+            onPaymentResult({ 
+              error: true, 
               message: "Error: Contenedores del formulario no encontrados. Por favor, recarga la página." 
-          });
+            });
+          }
+          return;
         }
-        return;
-      }
-
-      console.log('Contenedores encontrados, montando formulario...');
 
         // Verificar que el monto sea válido
         if (!amount || amount <= 0) {
           throw new Error('El monto debe ser mayor a 0');
         }
 
-      mp.cardForm({
-        amount: String(amount),
-        autoMount: true,
-        form: {
-          id: "form-checkout",
-          cardholderName: {
-            id: "form-checkout__cardholderName",
-            placeholder: "Nombre en la tarjeta",
+        mp.cardForm({
+          amount: String(amount),
+          autoMount: true,
+          form: {
+            id: "form-checkout",
+            cardholderName: {
+              id: "form-checkout__cardholderName",
+              placeholder: "Nombre en la tarjeta",
+            },
+            cardholderEmail: {
+              id: "form-checkout__cardholderEmail",
+              placeholder: "Email",
+            },
+            cardNumber: {
+              id: "form-checkout__cardNumber",
+              placeholder: "Número de tarjeta",
+            },
+            expirationDate: {
+              id: "form-checkout__expirationDate",
+              placeholder: "MM/YY",
+            },
+            securityCode: {
+              id: "form-checkout__securityCode",
+              placeholder: "CVV",
+            },
+            installments: {
+              id: "form-checkout__installments",
+              placeholder: "Cuotas",
+            },
+            identificationType: {
+              id: "form-checkout__identificationType",
+            },
+            identificationNumber: {
+              id: "form-checkout__identificationNumber",
+              placeholder: "DNI",
+            },
+            issuer: {
+              id: "form-checkout__issuer",
+            },
           },
-          cardholderEmail: {
-            id: "form-checkout__cardholderEmail",
-            placeholder: "Email",
-          },
-          cardNumber: {
-            id: "form-checkout__cardNumber",
-            placeholder: "Número de tarjeta",
-          },
-          expirationDate: {
-            id: "form-checkout__expirationDate",
-            placeholder: "MM/YY",
-          },
-          securityCode: {
-            id: "form-checkout__securityCode",
-            placeholder: "CVV",
-          },
-          installments: {
-            id: "form-checkout__installments",
-            placeholder: "Cuotas",
-          },
-          identificationType: {
-            id: "form-checkout__identificationType",
-          },
-          identificationNumber: {
-            id: "form-checkout__identificationNumber",
-            placeholder: "DNI",
-          },
-          issuer: {
-            id: "form-checkout__issuer",
-          },
-        },
-        callbacks: {
-          onFormMounted: (error) => {
-            if (error) {
-              console.warn("Error al montar el formulario de tarjeta:", error);
+          callbacks: {
+            onFormMounted: (error) => {
+              if (error) {
+                console.error("Error al montar el formulario de tarjeta:", error);
+                if (onPaymentResult) {
+                  onPaymentResult({ 
+                    error: true, 
+                    message: "Error al cargar el formulario de pago" 
+                  });
+                }
+              }
+            },
+            onSubmit: async (event) => {
+              event.preventDefault();
+              setLoading(true);
+              
+              try {
+                const formData = new FormData(event.target);
+                const paymentData = {
+                  amount: amount,
+                  description: "Compra de tickets",
+                  payment_method_id: formData.get('payment_method_id'),
+                  token: formData.get('token'),
+                  installments: formData.get('installments'),
+                  issuer_id: formData.get('issuer_id'),
+                  payer: {
+                    email: formData.get('cardholderEmail'),
+                    identification: {
+                      type: formData.get('identificationType'),
+                      number: formData.get('identificationNumber')
+                    }
+                  }
+                };
+
+                const response = await api.post('/mercadopago/process-payment', paymentData);
+                
+                if (onPaymentResult) {
+                  onPaymentResult(response.data);
+                }
+              } catch (error) {
+                console.error('Error processing payment:', error);
+                if (onPaymentResult) {
+                  onPaymentResult({ 
+                    error: true, 
+                    message: error.response?.data?.message || "Error al procesar el pago" 
+                  });
+                }
+              } finally {
+                setLoading(false);
+              }
+            },
+            onError: (error) => {
+              console.error("Error en el formulario de tarjeta:", error);
               if (onPaymentResult) {
                 onPaymentResult({ 
                   error: true, 
-                  message: "Error al cargar el formulario de pago. Por favor, recarga la página." 
+                  message: "Error en el formulario de pago" 
                 });
               }
-            } else {
-              console.log("Formulario de tarjeta montado correctamente");
-              
-              // Verificar que los iframes se hayan creado correctamente
-              setTimeout(() => {
-                const iframes = document.querySelectorAll('#form-checkout .container iframe');
-                console.log('Iframes encontrados:', iframes.length);
-                iframes.forEach((iframe, index) => {
-                  console.log(`Iframe ${index}:`, iframe);
-                  console.log(`Iframe ${index} pointer-events:`, getComputedStyle(iframe).pointerEvents);
-                  
-                  // Forzar que los iframes sean interactivos
-                  iframe.style.pointerEvents = 'auto';
-                  iframe.style.zIndex = '1000';
-                  iframe.style.position = 'relative';
-                  
-                  // Verificar si el iframe tiene contenido
-                  try {
-                    if (iframe.contentDocument) {
-                      console.log(`Iframe ${index} tiene contenido`);
-                    }
-                  } catch (e) {
-                    console.log(`Iframe ${index} no permite acceso al contenido (normal)`);
-                  }
-                });
-                
-                // Verificar contenedores
-                const containers = document.querySelectorAll('#form-checkout .container');
-                containers.forEach((container, index) => {
-                  console.log(`Contenedor ${index}:`, container);
-                  console.log(`Contenedor ${index} pointer-events:`, getComputedStyle(container).pointerEvents);
-                  container.style.pointerEvents = 'auto';
-                  container.style.zIndex = '1';
-                });
-              }, 1000);
             }
-          },
-          onSubmit: async (event) => {
-            event.preventDefault();
-            setLoading(true);
-            
-            try {
-              const {
-                paymentMethodId: payment_method_id,
-                issuerId: issuer_id,
-                cardholderEmail: email,
-                amount: formAmount,
-                token,
-                installments,
-                identificationNumber,
-                identificationType,
-              } = mp.cardForm().getCardFormData();
-
-              // Validaciones adicionales
-              if (!token || !payment_method_id || !email) {
-                throw new Error("Por favor, completa todos los campos requeridos");
-              }
-
-              console.log("Enviando pago al servidor...");
-              const res = await api.post("/mercadopago/card-payment", {
-                token,
-                issuer_id,
-                payment_method_id,
-                transaction_amount: Number(formAmount),
-                installments: Number(installments),
-                description: "Compra de ticket",
-                payer: {
-                  email,
-                  identification: {
-                    type: identificationType,
-                    number: identificationNumber,
-                  },
-                },
-              });
-
-              console.log("Respuesta del servidor:", res.data);
-              
-              if (onPaymentResult) onPaymentResult(res.data);
-              
-              if (res.data.status === 'approved' || res.data.status === 'pending') {
-                alert("¡Pago procesado correctamente! Estado: " + res.data.status);
-              } else {
-                alert("Pago procesado. Estado: " + res.data.status + "\nDetalles: " + res.data.status_detail);
-              }
-            } catch (err) {
-              console.error("Error en el pago:", err);
-              const errorMessage = err.response?.data?.message || err.message || "Error desconocido al procesar el pago";
-              alert("Error al procesar el pago: " + errorMessage);
-              if (onPaymentResult) onPaymentResult({ error: true, message: errorMessage });
-            } finally {
-              setLoading(false);
-            }
-          },
-          onError: (error) => {
-            console.error("Error en el formulario de tarjeta:", error);
-              
-              // Manejo más robusto del error
-              let errorMessage = "Error desconocido en el formulario de pago";
-              
-              if (error && typeof error === 'object') {
-                if (error.message) {
-                  errorMessage = error.message;
-                } else if (error.error) {
-                  errorMessage = error.error;
-                } else if (error.description) {
-                  errorMessage = error.description;
-                }
-              } else if (typeof error === 'string') {
-                errorMessage = error;
-              }
-              
-              console.log("Error detallado:", {
-                error,
-                type: typeof error,
-                keys: error ? Object.keys(error) : 'no error object'
-              });
-              
-            if (onPaymentResult) {
-              onPaymentResult({ 
-                error: true, 
-                  message: "Error en el formulario: " + errorMessage 
-              });
-            }
-          },
-        },
-      });
+          }
+        });
       } catch (error) {
-        console.error('Error al inicializar Mercado Pago:', error);
+        console.error('Error loading MercadoPago SDK:', error);
         if (onPaymentResult) {
           onPaymentResult({ 
             error: true, 
-            message: "Error al inicializar el sistema de pago: " + error.message 
+            message: "Error al cargar el sistema de pagos" 
           });
         }
       }
     })();
+
     return () => {
       mounted = false;
     };
@@ -255,44 +177,86 @@ export default function MercadoPagoCardForm({ amount, onPaymentResult }) {
 
   // Función para crear formulario alternativo con campos nativos
   const createNativeForm = () => {
-    console.log('Creando formulario nativo como alternativa...');
-    
-    // Limpiar contenedores
-    const containers = document.querySelectorAll('#form-checkout .container');
-    containers.forEach(container => {
-      container.innerHTML = '';
-    });
-    
-    // Crear campos nativos
-    const cardNumberContainer = document.getElementById('form-checkout__cardNumber');
-    const expirationContainer = document.getElementById('form-checkout__expirationDate');
-    const securityCodeContainer = document.getElementById('form-checkout__securityCode');
-    
-    if (cardNumberContainer) {
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = 'Número de tarjeta';
-      input.style.cssText = 'width: 100%; padding: 8px; border: 1px solid #333; border-radius: 4px; font-size: 12px;';
-      cardNumberContainer.appendChild(input);
-    }
-    
-    if (expirationContainer) {
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = 'MM/YY';
-      input.style.cssText = 'width: 100%; padding: 8px; border: 1px solid #333; border-radius: 4px; font-size: 12px;';
-      expirationContainer.appendChild(input);
-    }
-    
-    if (securityCodeContainer) {
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = 'CVV';
-      input.style.cssText = 'width: 100%; padding: 8px; border: 1px solid #333; border-radius: 4px; font-size: 12px;';
-      securityCodeContainer.appendChild(input);
-    }
-    
-    alert('Formulario nativo creado. Nota: Este es un fallback y no incluye validación de tarjeta en tiempo real.');
+    return (
+      <form id="form-checkout" onSubmit={handleNativeSubmit}>
+        <div className="row">
+          <div className="col-md-6 mb-3">
+            <input
+              type="text"
+              id="form-checkout__cardholderName"
+              name="cardholderName"
+              className="form-control"
+              placeholder="Nombre en la tarjeta"
+              required
+            />
+          </div>
+          <div className="col-md-6 mb-3">
+            <input
+              type="email"
+              id="form-checkout__cardholderEmail"
+              name="cardholderEmail"
+              className="form-control"
+              placeholder="Email"
+              required
+            />
+          </div>
+        </div>
+        
+        <div className="row">
+          <div className="col-md-6 mb-3">
+            <div id="form-checkout__cardNumber" className="form-control"></div>
+          </div>
+          <div className="col-md-3 mb-3">
+            <div id="form-checkout__expirationDate" className="form-control"></div>
+          </div>
+          <div className="col-md-3 mb-3">
+            <div id="form-checkout__securityCode" className="form-control"></div>
+          </div>
+        </div>
+        
+        <div className="row">
+          <div className="col-md-4 mb-3">
+            <select id="form-checkout__installments" name="installments" className="form-control" required>
+              <option value="">Cuotas</option>
+            </select>
+          </div>
+          <div className="col-md-4 mb-3">
+            <select id="form-checkout__identificationType" name="identificationType" className="form-control" required>
+              <option value="">Tipo de documento</option>
+            </select>
+          </div>
+          <div className="col-md-4 mb-3">
+            <input
+              type="text"
+              id="form-checkout__identificationNumber"
+              name="identificationNumber"
+              className="form-control"
+              placeholder="Número de documento"
+              required
+            />
+          </div>
+        </div>
+        
+        <div className="row">
+          <div className="col-md-6 mb-3">
+            <select id="form-checkout__issuer" name="issuer" className="form-control" required>
+              <option value="">Banco emisor</option>
+            </select>
+          </div>
+        </div>
+        
+        <Button type="submit" variant="primary" disabled={loading} className="w-100">
+          {loading ? (
+            <>
+              <Spinner animation="border" size="sm" className="me-2" />
+              Procesando pago...
+            </>
+          ) : (
+            `Pagar $${amount.toFixed(2)}`
+          )}
+        </Button>
+      </form>
+    );
   };
 
   return (
