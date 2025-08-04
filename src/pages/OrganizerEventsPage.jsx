@@ -169,6 +169,11 @@ export default function OrganizerEventsPage() {
     try {
       setLoading(true);
       
+      // Verificar token de autenticación
+      const token = localStorage.getItem('token');
+      console.log('Token available:', !!token);
+      console.log('User data:', user);
+      
       const data = new FormData();
       Object.keys(formData).forEach(key => {
         if (formData[key] !== null && formData[key] !== undefined) {
@@ -184,13 +189,21 @@ export default function OrganizerEventsPage() {
       let organizerId = user.organizer_id || user.id;
       if (user.role === 'organizer') {
         try {
+          console.log('Fetching organizers for user:', user.id);
           const organizersRes = await api.get('/organizers');
+          console.log('Organizers response:', organizersRes.data);
           const userOrganizer = organizersRes.data.find(org => org.user_id === user.id);
           if (userOrganizer) {
             organizerId = userOrganizer.id;
+            console.log('Found organizer_id:', organizerId);
+          } else {
+            console.log('No organizer found for user_id:', user.id);
           }
         } catch (e) {
           console.error('Could not fetch organizers for event creation:', e);
+          console.error('Error details:', e.response?.data);
+          // Usar el user.id como fallback
+          organizerId = user.id;
         }
       }
       
@@ -215,7 +228,20 @@ export default function OrganizerEventsPage() {
       setEditingEvent(null);
     } catch (err) {
       console.error('Error saving event:', err);
-      toast.error(editingEvent ? 'Error al actualizar evento' : 'Error al crear evento');
+      console.error('Error response:', err.response?.data);
+      console.error('Error status:', err.response?.status);
+      console.error('Error headers:', err.response?.headers);
+      
+      let errorMessage = 'Error al guardar evento';
+      if (err.response?.status === 401) {
+        errorMessage = 'Error de autenticación. Por favor, inicia sesión nuevamente.';
+      } else if (err.response?.status === 500) {
+        errorMessage = 'Error interno del servidor. Por favor, intenta más tarde.';
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
